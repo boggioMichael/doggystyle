@@ -7,11 +7,15 @@ import {
   randomUUID,
   scrypt as scryptCb,
   timingSafeEqual,
+  type ScryptOptions,
 } from 'node:crypto';
-import { promisify } from 'node:util';
 import { env } from '../config/env.js';
 
-const scrypt = promisify(scryptCb);
+/** promisify() drops the options-bearing overload, so wrap scrypt by hand. */
+const scrypt = (password: string, salt: Buffer, keylen: number, options: ScryptOptions): Promise<Buffer> =>
+  new Promise((resolve, reject) => {
+    scryptCb(password, salt, keylen, options, (err, derivedKey) => (err ? reject(err) : resolve(derivedKey)));
+  });
 
 /* ── Random ids & tokens ─────────────────────────────────────────────────── */
 
@@ -64,12 +68,12 @@ const SCRYPT_MAXMEM = 256 * 1024 * 1024;
 
 export async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(16);
-  const derived = (await scrypt(password.normalize('NFKC'), salt, SCRYPT_KEYLEN, {
+  const derived = await scrypt(password.normalize('NFKC'), salt, SCRYPT_KEYLEN, {
     N: SCRYPT_N,
     r: SCRYPT_R,
     p: SCRYPT_P,
     maxmem: SCRYPT_MAXMEM,
-  })) as Buffer;
+  });
   return `scrypt$${SCRYPT_N}$${SCRYPT_R}$${SCRYPT_P}$${salt.toString('base64')}$${derived.toString('base64')}`;
 }
 
@@ -85,12 +89,12 @@ export async function verifyPassword(password: string, stored: string | null | u
   const salt = Buffer.from(saltB64, 'base64');
   const expected = Buffer.from(hashB64, 'base64');
   try {
-    const derived = (await scrypt(password.normalize('NFKC'), salt, expected.length, {
+    const derived = await scrypt(password.normalize('NFKC'), salt, expected.length, {
       N,
       r,
       p,
       maxmem: SCRYPT_MAXMEM,
-    })) as Buffer;
+    });
     return derived.length === expected.length && timingSafeEqual(derived, expected);
   } catch {
     return false;

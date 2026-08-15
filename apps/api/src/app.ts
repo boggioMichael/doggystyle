@@ -24,7 +24,9 @@ import { registerModerationRoutes } from './modules/moderation/routes.js';
 import { registerSocialRoutes } from './modules/social/routes.js';
 import { registerUserRoutes } from './modules/users/routes.js';
 
-export async function buildApp(): Promise<FastifyInstance> {
+// Return type is inferred: the pino loggerInstance narrows the Fastify generics,
+// and forcing the default FastifyInstance shape back on it fails to typecheck.
+export async function buildApp() {
   const app = Fastify({
     loggerInstance: logger,
     disableRequestLogging: true,

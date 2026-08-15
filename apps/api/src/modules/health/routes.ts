@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import type { HealthDto } from '@doggystyle/shared';
 import { env } from '../../config/env.js';
 import { db, pingDb } from '../../db/client.js';
+import { KNOWN_CITIES } from '../../lib/geo.js';
 import { jobs } from '../../db/schema.js';
 import { getAiProvider } from '../../ai/index.js';
 
@@ -46,5 +47,6 @@ export async function registerHealthRoutes(app: FastifyInstance): Promise<void> 
     demoMode: env.DEMO_MODE,
     aiProvider: getAiProvider().id,
     minimumAgeYears: 18,
+    knownCities: KNOWN_CITIES.map((c) => ({ city: c.city, country: c.country })),
   }));
 }

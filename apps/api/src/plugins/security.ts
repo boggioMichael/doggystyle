@@ -74,7 +74,8 @@ export const errorHandlerPlugin: FastifyPluginAsync = async (app: FastifyInstanc
     }
 
     // Fastify/plugin validation errors
-    const statusCode = typeof err.statusCode === 'number' ? err.statusCode : 500;
+    const fastifyErr = err as { statusCode?: unknown; message?: unknown };
+    const statusCode = typeof fastifyErr.statusCode === 'number' ? fastifyErr.statusCode : 500;
     if (statusCode === 413) {
       reply.status(413).send({
         error: { code: 'payload_too_large', message: 'That file is too large.', requestId },
@@ -83,8 +84,9 @@ export const errorHandlerPlugin: FastifyPluginAsync = async (app: FastifyInstanc
     }
     if (statusCode >= 400 && statusCode < 500) {
       req.log.warn({ err, requestId }, 'client error');
+      const message = typeof fastifyErr.message === 'string' && fastifyErr.message ? fastifyErr.message : 'Bad request.';
       reply.status(statusCode).send({
-        error: { code: 'bad_request', message: err.message || 'Bad request.', requestId },
+        error: { code: 'bad_request', message, requestId },
       });
       return;
     }

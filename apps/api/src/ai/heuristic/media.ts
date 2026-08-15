@@ -61,7 +61,8 @@ export async function analyseImageHeuristic(buffer: Buffer): Promise<MediaFeatur
       const hb = Math.min(HUE_BINS - 1, Math.floor((hue / 360) * HUE_BINS));
       const sb = Math.min(SAT_BINS - 1, Math.floor(sat * SAT_BINS));
       const vb = Math.min(VAL_BINS - 1, Math.floor(val * VAL_BINS));
-      histogram[hb * SAT_BINS * VAL_BINS + sb * VAL_BINS + vb] += 1;
+      const bin = hb * SAT_BINS * VAL_BINS + sb * VAL_BINS + vb;
+      histogram[bin] = (histogram[bin] ?? 0) + 1;
       n += 1;
     }
   }
