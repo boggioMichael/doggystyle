@@ -5,8 +5,12 @@
 
 function envValue(key: string): string | undefined {
   // Works in Node (process.env) and in Vite (import.meta.env), without breaking either build.
+  // Uses globalThis to avoid requiring @types/node in browser-targeted tsconfigs.
+  const g = globalThis as Record<string, unknown>;
   const nodeEnv =
-    typeof process !== 'undefined' && process.env ? (process.env as Record<string, string | undefined>) : undefined;
+    typeof g['process'] !== 'undefined' && g['process'] != null
+      ? ((g['process'] as { env?: Record<string, string | undefined> }).env ?? null)
+      : null;
   return nodeEnv?.[key] ?? nodeEnv?.[`VITE_${key}`];
 }
 

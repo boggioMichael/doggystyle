@@ -3,9 +3,9 @@ import path from 'node:path';
 import fastifyCookie from '@fastify/cookie';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify from 'fastify';
 import { env } from './config/env.js';
-import { logger } from './lib/logger.js';
+import { loggerOptions } from './lib/logger.js';
 import { authPlugin } from './plugins/auth.js';
 import { contextPlugin } from './plugins/context.js';
 import { errorHandlerPlugin, securityHeadersPlugin } from './plugins/security.js';
@@ -24,11 +24,11 @@ import { registerModerationRoutes } from './modules/moderation/routes.js';
 import { registerSocialRoutes } from './modules/social/routes.js';
 import { registerUserRoutes } from './modules/users/routes.js';
 
-// Return type is inferred: the pino loggerInstance narrows the Fastify generics,
-// and forcing the default FastifyInstance shape back on it fails to typecheck.
+// Return type is inferred: the Fastify instance uses default FastifyBaseLogger,
+// which keeps it compatible with all FastifyPluginAsync plugin signatures.
 export async function buildApp() {
   const app = Fastify({
-    loggerInstance: logger,
+    logger: loggerOptions,
     disableRequestLogging: true,
     trustProxy: true,
     bodyLimit: 1024 * 1024, // 1 MB for JSON; uploads go through multipart

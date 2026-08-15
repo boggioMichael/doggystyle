@@ -487,10 +487,17 @@ export function matingReadiness(
   profile: MatingProfileFacts,
 ): { completeness: number; gaps: string[] } {
   const status = breeding?.reproductiveStatus ?? null;
-  const checks: Array<{ ok: boolean; gap: string }> = [
+
+  // Profile basics are prerequisites (shown as warnings) but don't count toward
+  // breeding-record completeness — owners can't earn a high score just by having
+  // a name and breed on file; they need actual health and registration records.
+  const prerequisites: Array<{ ok: boolean; gap: string }> = [
     { ok: profile.breed !== null && profile.breed.trim() !== '', gap: 'No exact breed provided' },
     { ok: profile.ageYears !== null, gap: 'Age not provided' },
     { ok: profile.sex === 'male' || profile.sex === 'female', gap: 'Sex not specified' },
+  ];
+
+  const records: Array<{ ok: boolean; gap: string }> = [
     {
       ok: status === 'intact',
       gap: status && status !== 'unknown' ? 'Not recorded as intact' : 'No reproductive status provided',
@@ -502,9 +509,13 @@ export function matingReadiness(
     { ok: !!breeding?.vetClearance, gap: 'No vet clearance provided' },
   ];
 
-  const provided = checks.filter((c) => c.ok).length;
+  const provided = records.filter((c) => c.ok).length;
+  const gaps = [
+    ...prerequisites.filter((c) => !c.ok).map((c) => c.gap),
+    ...records.filter((c) => !c.ok).map((c) => c.gap),
+  ];
   return {
-    completeness: provided / checks.length,
-    gaps: checks.filter((c) => !c.ok).map((c) => c.gap),
+    completeness: provided / records.length,
+    gaps,
   };
 }

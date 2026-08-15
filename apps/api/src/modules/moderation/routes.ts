@@ -1,6 +1,7 @@
-import { REPORT_REASONS } from '@doggystyle/shared';
+﻿import { REPORT_REASONS } from '@doggystyle/shared';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { badRequest } from '../../lib/errors.js';
 import { RATE_RULES, rateLimiter } from '../../lib/rateLimit.js';
 import { blockUser, reportUser, unblockUser } from './service.js';
 
@@ -17,11 +18,17 @@ const reportBody = z
   })
   .strict();
 
+function parseBody<S extends z.ZodTypeAny>(schema: S, body: unknown): z.infer<S> {
+  const result = schema.safeParse(body ?? {});
+  if (!result.success) throw badRequest('Invalid request.', result.error.flatten().fieldErrors);
+  return result.data;
+}
+
 export async function registerModerationRoutes(app: FastifyInstance): Promise<void> {
   app.post('/moderation/block', async (req, reply) => {
     const actor = req.requireUser();
     rateLimiter.check(RATE_RULES.write, actor.userId);
-    const body = blockBody.parse(req.body);
+    const body = parseBody(blockBody, req.body);
     await blockUser({
       actorUserId: actor.userId,
       blockedUserId: body.userId,
@@ -34,7 +41,7 @@ export async function registerModerationRoutes(app: FastifyInstance): Promise<vo
   app.post('/moderation/unblock', async (req, reply) => {
     const actor = req.requireUser();
     rateLimiter.check(RATE_RULES.write, actor.userId);
-    const body = blockBody.parse(req.body);
+    const body = parseBody(blockBody, req.body);
     await unblockUser({ actorUserId: actor.userId, blockedUserId: body.userId, requestId: req.requestId });
     reply.send({ ok: true });
   });
@@ -42,7 +49,7 @@ export async function registerModerationRoutes(app: FastifyInstance): Promise<vo
   app.post('/moderation/report', async (req) => {
     const actor = req.requireUser();
     rateLimiter.check(RATE_RULES.report, actor.userId);
-    const body = reportBody.parse(req.body);
+    const body = parseBody(reportBody, req.body);
     return reportUser({
       actorUserId: actor.userId,
       reportedUserId: body.userId,

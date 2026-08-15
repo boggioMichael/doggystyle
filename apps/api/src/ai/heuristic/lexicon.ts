@@ -155,6 +155,12 @@ export function normalise(text: string): string {
     .trim();
 }
 
+/** Build a word-boundary regex for a pattern (handles multi-word phrases too). */
+function wordRe(pattern: string): RegExp {
+  const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?<![\\w])${escaped}(?![\\w])`, 'i');
+}
+
 /** Find every lexicon value whose patterns appear in the text, skipping negated hits. */
 export function matchLexicon<T extends string>(
   text: string,
@@ -165,9 +171,10 @@ export function matchLexicon<T extends string>(
   const found: T[] = [];
   for (const entry of lexicon) {
     for (const pattern of entry.patterns) {
-      const idx = haystack.indexOf(pattern);
-      if (idx === -1) continue;
-      if (opts.respectNegation && isNegated(haystack, idx)) continue;
+      const re = wordRe(pattern);
+      const m = re.exec(haystack);
+      if (!m) continue;
+      if (opts.respectNegation && isNegated(haystack, m.index)) continue;
       if (!found.includes(entry.value)) found.push(entry.value);
       break;
     }
@@ -178,12 +185,12 @@ export function matchLexicon<T extends string>(
 /** True when a negation word appears within the preceding ~24 characters. */
 export function isNegated(haystack: string, index: number): boolean {
   const window = haystack.slice(Math.max(0, index - 24), index);
-  return NEGATION_TERMS.some((n) => window.includes(n));
+  return NEGATION_TERMS.some((n) => new RegExp(`(?<![\\w])${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w])`, 'i').test(window));
 }
 
 export function containsAny(text: string, terms: readonly string[]): boolean {
   const haystack = normalise(text);
-  return terms.some((t) => haystack.includes(t));
+  return terms.some((t) => wordRe(t).test(haystack));
 }
 
 export const ALL_ACTIVITY_LEVELS = ACTIVITY_LEVELS;

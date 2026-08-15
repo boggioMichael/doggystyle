@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Must run before any src/ import so config/env.ts sees these values.
  * Pure-function suites need no database; the connection string is only used by
  * suites that import the db client.
@@ -14,5 +14,8 @@ process.env.MAIL_TRANSPORT = 'store';
 process.env.AI_PROVIDER = 'heuristic';
 process.env.LOG_LEVEL = 'silent';
 process.env.LOG_PRETTY = 'false';
+// Rate limiting must be off in tests: tests create many accounts from the same
+// loopback IP address and the signup/login limits would fire after a few tests.
+process.env.RATE_LIMIT_ENABLED = 'false';
 process.env.DATABASE_URL =
-  process.env.TEST_DATABASE_URL ?? 'postgres://doggystyle:test@127.0.0.1:5433/doggystyle_test';
+  process.env.TEST_DATABASE_URL ?? 'postgres://doggystyle:doggystyle@127.0.0.1:5433/doggystyle_test';
