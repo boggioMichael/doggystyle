@@ -107,7 +107,9 @@ export function decideActionHeuristic(utterance: string, context: AgentContext):
   }
 
   /* ── 8. Standing radius preference: "only find dogs within N km" ────────── */
-  const prefRadius = text.match(/\bonly find dogs?\b[^.]*\bwithin\s*(\d{1,3}(?:\.\d)?)\s*km\b/);
+  const prefRadius = text.match(
+    /\bonly (?:find|show|search)\b[^.]*\b(?:within|inside|closer than|under)\s*(\d{1,3}(?:\.\d)?)\s*(?:km|kilomet(?:er|re)s?)\b/,
+  );
   if (prefRadius?.[1]) {
     const radiusKm = Number(prefRadius[1]);
     return decision('update_preferences', { radiusKm },
@@ -119,7 +121,7 @@ export function decideActionHeuristic(utterance: string, context: AgentContext):
   /* ── 9. One-off radius refinement of the last search ────────────────────── */
   if (
     context.lastSearchId &&
-    /\b(?:closer than|within|less than|no more than)\s*\d{1,3}(?:\.\d)?\s*km\b/.test(text)
+    /\b(?:closer than|within|less than|no more than)\s*\d{1,3}(?:\.\d)?\s*(?:km|kilomet(?:er|re)s?)\b/.test(text)
   ) {
     // The intent parser re-reads the utterance, so no args are needed here.
     return decision('find_matches', {},
@@ -213,6 +215,21 @@ export function decideActionHeuristic(utterance: string, context: AgentContext):
       "Here's the next one.",
       ['I like this one', 'Show me another', 'Refine the search'],
       0.85);
+  }
+
+  /* ── 15b. Build / rebuild the profile from imported photos ──────────────── */
+  if (
+    /\b(?:build|create|make|generate|set ?up|fill in|work out)\b[^.]*\b(?:profile|his profile|her profile|their profile)\b/.test(text) ||
+    /\b(?:use|from)\b[^.]*\b(?:imported|uploaded|my)\b[^.]*\b(?:photos?|pictures?|pics?|images?)\b/.test(text) ||
+    /\bwhich (?:photos?|ones?) (?:are|is) (?:my|the) dog\b/.test(text)
+  ) {
+    return decision(
+      'import_media',
+      {},
+      'Looking through your photos now…',
+      ['That looks right', 'Change the breed', 'Find matches nearby'],
+      0.85,
+    );
   }
 
   /* ── 16. Explicit search verbs ──────────────────────────────────────────── */
@@ -366,11 +383,13 @@ function matchProfileCorrection(raw: string, text: string, context: AgentContext
       0.85);
   }
 
-  // Age: "he's actually 4", "she is 3 years old"
-  const ageMatch = text.match(/\b(?:he|she|it)(?:'s| is)\s+(?:actually\s+|only\s+)?(\d{1,2}(?:\.\d)?)\s*(?:years?|yrs?)?\s*(?:old)?\b/);
-  if (ageMatch?.[1] && (/(?:actually|only|years?|yrs?|old)/.test(ageMatch[0]))) {
-    const age = Number(ageMatch[1]);
-    if (age >= 0 && age <= 30) {
+  // Age: "he's actually 4", "she is 3 years old", "he's actually four, not three"
+  const ageMatch = text.match(
+    /\b(?:he|she|it)(?:'s| is)\s+(?:actually\s+|only\s+)?(\d{1,2}(?:\.\d)?|zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\s*(?:years?|yrs?)?\s*(?:old)?\b/,
+  );
+  if (ageMatch?.[1] && /(?:actually|only|years?|yrs?|old|not)/.test(text)) {
+    const age = parseNumberWord(ageMatch[1]);
+    if (age !== null && age >= 0 && age <= 30) {
       return decision('update_profile', { updates: [{ key: 'age_years', value: age }] },
         `Thanks — I've set ${dogName}'s age to ${age}.`,
         ['Show the profile', 'Anything else to fix?'],
@@ -565,3 +584,19 @@ function escapeRegExp(s: string): string {
 }
 
 const capitalise = (s: string): string => (s.length ? s[0]!.toUpperCase() + s.slice(1) : s);
+
+/**
+ * Owners write ages both ways ("he's 4", "he's actually four"), so accept
+ * spelled-out numbers up to twenty alongside digits.
+ */
+function parseNumberWord(input: string): number | null {
+  const direct = Number(input);
+  if (Number.isFinite(direct)) return direct;
+  const words: Record<string, number> = {
+    zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7,
+    eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13,
+    fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18,
+    nineteen: 19, twenty: 20,
+  };
+  return words[input.toLowerCase()] ?? null;
+}

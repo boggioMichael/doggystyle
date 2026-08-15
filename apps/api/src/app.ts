@@ -35,9 +35,12 @@ export async function buildApp() {
     ajv: { customOptions: { removeAdditional: false, coerceTypes: false } },
   });
 
-  await app.register(contextPlugin);
-  await app.register(securityHeadersPlugin);
-  await app.register(errorHandlerPlugin);
+  // Applied directly rather than via app.register(): register() creates an
+  // encapsulated child context, and decorators/hooks added inside it would not
+  // be visible to sibling scopes — routes would lose req.requireUser().
+  await contextPlugin(app, {});
+  await securityHeadersPlugin(app, {});
+  await errorHandlerPlugin(app, {});
 
   await app.register(fastifyCookie, { secret: env.SESSION_SECRET });
   await app.register(fastifyMultipart, {
@@ -49,7 +52,7 @@ export async function buildApp() {
     },
   });
 
-  await app.register(authPlugin);
+  await authPlugin(app, {});
 
   await app.register(
     async (api) => {

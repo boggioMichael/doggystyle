@@ -294,6 +294,8 @@ export interface ConnectionSummaryDto {
   conversationId: string;
   peerDog: { id: string; name: string; photoUrl: string | null; breed: string | null };
   peerOwnerDisplayName: string;
+  /** Needed so the UI can offer Block/Report. Never accompanied by an email. */
+  peerOwnerId: string;
   intent: MatchIntent;
   lastMessagePreview: string | null;
   lastMessageAt: string | null;
