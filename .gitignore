@@ -1,0 +1,34 @@
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# local runtime data
+storage/
+data/
+tmp/
+*.log
+logs/
+
+# test output
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# editors / os
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

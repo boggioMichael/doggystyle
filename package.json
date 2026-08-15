@@ -1,0 +1,40 @@
+{
+  "name": "doggystyle",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Doggystyle — conversational dog matching, meetups and social for dog owners.",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm run dev --workspace @doggystyle/api",
+    "dev:web": "npm run dev --workspace @doggystyle/web",
+    "build": "npm run build --workspace @doggystyle/shared && npm run build --workspace @doggystyle/api && npm run build --workspace @doggystyle/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "npm run test --workspace @doggystyle/shared --if-present && npm run test --workspace @doggystyle/api",
+    "test:web": "npm run test --workspace @doggystyle/web",
+    "test:e2e": "npm run test:e2e --workspace @doggystyle/web",
+    "test:all": "npm run test && npm run test:web && npm run test:e2e",
+    "db:migrate": "npm run db:migrate --workspace @doggystyle/api",
+    "db:seed": "npm run db:seed --workspace @doggystyle/api",
+    "db:reset": "npm run db:reset --workspace @doggystyle/api",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "preflight": "node scripts/preflight.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.39.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.0"
+  }
+}
