@@ -1,0 +1,63 @@
+app = "doggystyle-beta"
+primary_region = "cdg"   # Paris – change to nearest region (lhr, iad, fra, etc.)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV       = "production"
+  SERVE_WEB      = "true"
+  HOST           = "0.0.0.0"
+  API_PORT       = "8080"
+  LOG_PRETTY     = "false"
+  COOKIE_SECURE  = "true"
+  DEMO_MODE      = "false"
+  ROLE           = "both"
+
+# Secrets set via `fly secrets set KEY=value` (never committed):
+#   DATABASE_URL
+#   SESSION_SECRET
+#   TOKEN_PEPPER
+#   ADMIN_EMAIL
+#   ADMIN_PASSWORD
+#   (optional) ANTHROPIC_API_KEY
+#   (optional) SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM
+
+[[services]]
+  internal_port = 8080
+  protocol      = "tcp"
+  auto_stop_machines  = true
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[services.ports]]
+    port     = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port     = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type       = "connections"
+    hard_limit = 100
+    soft_limit = 80
+
+  [[services.http_checks]]
+    interval       = "15s"
+    timeout        = "5s"
+    grace_period   = "30s"
+    method         = "GET"
+    path           = "/api/health"
+    protocol       = "http"
+    tls_skip_verify = false
+
+[mounts]
+  # Persistent volume for uploaded media files
+  source      = "doggystyle_media"
+  destination = "/app/storage/media"
+
+[metrics]
+  port = 9091
+  path = "/metrics"
