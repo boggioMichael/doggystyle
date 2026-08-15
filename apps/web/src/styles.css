@@ -1,0 +1,59 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-cream: #faf6f0;
+  --color-card: #fffdfa;
+  --color-ink: #2b2320;
+  --color-ink-soft: #6b5d55;
+  --color-line: #ece3d8;
+  --color-primary: #c4623a;
+  --color-primary-dark: #a94f2c;
+  --color-primary-soft: #f3d9cb;
+  --color-accent: #7a9e7e;
+  --color-warn: #b5761f;
+  --color-warn-soft: #fbeed7;
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* Respect the iPhone notch / home indicator when installed to the home screen. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+/* Keep iOS from zooming when focusing an input. */
+input,
+textarea,
+select {
+  font-size: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.ds-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.ds-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 999px;
+}

@@ -111,7 +111,9 @@ async function tick(): Promise<void> {
     await handler(job.payload ?? {});
     await db
       .update(jobs)
-      .set({ status: 'completed', finishedAt: new Date(), lastError: null, updatedAt: new Date() })
+      // 'complete' (not 'completed') — this is the vocabulary the jobs_status_ck
+      // database constraint and JobRowDto both use.
+      .set({ status: 'complete', finishedAt: new Date(), lastError: null, updatedAt: new Date() })
       .where(eq(jobs.id, job.id));
     logger.debug({ jobId: job.id, type: job.type }, 'job completed');
   } catch (err) {

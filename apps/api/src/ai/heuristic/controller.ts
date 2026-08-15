@@ -283,10 +283,11 @@ function decision(
 
 function searchDecision(context: AgentContext): AgentDecision {
   if (!context.hasDog) {
-    // Cannot search without a subject dog — guide to the profile flow instead.
-    return decision('answer_question', {},
-      "I'd love to — but first I need to know your dog! Connect a photo source (or upload a few photos) and I'll build their profile, then find great matches nearby.",
-      ['Connect a photo source', 'Upload photos instead'],
+    // Cannot search without a subject dog. Return the connect action rather than
+    // plain text so the reply carries the actual source picker, not just advice.
+    return decision('connect_social_account', {},
+      "I'd love to — but first I need to know your dog! Pick where their photos live and I'll build the profile, then find great matches nearby.",
+      ['Upload photos instead'],
       0.7);
   }
   const who = context.dogName ?? 'your dog';
@@ -318,9 +319,9 @@ function fallbackDecision(context: AgentContext): AgentDecision {
         ['Review the profile draft', 'Import more photos'],
         0.5);
     }
-    return decision('answer_question', {},
-      "Here's how it works: connect a photo source (Instagram, Google Photos, or a simple upload), I build your dog's profile from the photos, you confirm it, and then I find compatible dogs nearby. Where shall we start?",
-      ['Connect a photo source', 'Upload photos instead', 'What can you do?'],
+    return decision('connect_social_account', {},
+      "Here's how it works: connect a photo source, I build your dog's profile from the photos, you confirm it, and then I find compatible dogs nearby. Where shall we start?",
+      ['Upload photos instead', 'What can you do?'],
       0.4);
   }
   if (!context.lastSearchId) {

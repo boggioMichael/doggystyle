@@ -75,6 +75,7 @@ export async function buildApp() {
 
   // Optionally serve the built SPA from the same origin, which removes CORS
   // entirely and lets session cookies stay SameSite=Lax.
+  let servingWeb = false;
   if (env.SERVE_WEB) {
     if (!existsSync(path.join(env.webDistDir, 'index.html'))) {
       app.log.warn(
@@ -82,6 +83,7 @@ export async function buildApp() {
         'SERVE_WEB is on but no built web app was found — run `npm run build --workspace @doggystyle/web`',
       );
     } else {
+      servingWeb = true;
       await app.register(fastifyStatic, {
         root: env.webDistDir,
         prefix: '/',
@@ -94,20 +96,25 @@ export async function buildApp() {
           }
         },
       });
-
-      // Client-side routing fallback (never for /api/*).
-      app.setNotFoundHandler((req, reply) => {
-        if (req.url.startsWith('/api/')) {
-          reply.status(404).send({
-            error: { code: 'not_found', message: 'No such endpoint.', requestId: req.requestId },
-          });
-          return;
-        }
-        reply.header('cache-control', 'no-cache');
-        return reply.sendFile('index.html');
-      });
     }
   }
+
+  // One 404 handler for the whole instance: JSON for the API, and — when the
+  // SPA is being served — index.html so client-side routes resolve on reload.
+  app.setNotFoundHandler((req, reply) => {
+    if (req.url.startsWith('/api/')) {
+      return reply.status(404).send({
+        error: { code: 'not_found', message: 'No such endpoint.', requestId: req.requestId },
+      });
+    }
+    if (servingWeb) {
+      reply.header('cache-control', 'no-cache');
+      return reply.sendFile('index.html');
+    }
+    return reply.status(404).send({
+      error: { code: 'not_found', message: 'Not found.', requestId: req.requestId },
+    });
+  });
 
   return app;
 }

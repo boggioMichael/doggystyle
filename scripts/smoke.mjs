@@ -131,7 +131,11 @@ async function main() {
   const result = attachmentOf(searched, 'matches')?.result;
   check('search returned ranked matches', (result?.candidates?.length ?? 0) > 0, `${result?.candidates?.length ?? 0} candidates`);
 
-  const top = result?.candidates?.[0];
+  // Introduce to a *seeded* dog: the demo simulation deliberately refuses to
+  // act on behalf of real accounts, and earlier smoke runs leave dogs behind.
+  const SEEDED_DOGS = ['Luna', 'Kobi', 'Milo', 'One', 'Pixel', 'Rocket', 'Nala', 'Ziggy', 'Sesame', 'Bamba'];
+  const top =
+    result?.candidates?.find((c) => SEEDED_DOGS.includes(c.name)) ?? result?.candidates?.[0];
   check('candidate has a score', typeof top?.score === 'number', top ? `${top.name} ${top.score}%` : '');
   check('candidate explains itself', (top?.reasons?.length ?? 0) > 0, top?.reasons?.[0] ?? '');
   check('distance is bucketed, not precise', !!top?.distanceLabel && !/\d\.\d{3}/.test(top.distanceLabel), top?.distanceLabel);
@@ -202,16 +206,16 @@ async function main() {
     matingResult ? `disclaimer: ${matingResult.disclaimer ? 'present' : 'MISSING'}` : mating?.text?.slice(0, 120),
   );
 
-  /* IDOR: a second user must not see the first user's dog */
+  /* IDOR: a second user must not see the first user's dog.
+     Sign in as a seeded owner rather than creating another account — repeated
+     runs would otherwise trip the (correct) signup rate limit. */
   const bob = makeSession();
-  await call(bob, 'POST', '/auth/signup', {
-    email: `smoke-bob+${stamp}@e2e.doggystyle.local`,
-    password: 'SmokeTest123',
-    displayName: 'Bob',
-    city: 'Tel Aviv',
-    ageConfirmed: true,
-    acceptTerms: true,
+  const bobLogin = await call(bob, 'POST', '/auth/login', {
+    email: 'owner2@demo.doggystyle.local',
+    password: 'Demo123!',
   });
+  check('second actor signed in', bobLogin.status === 200, `status ${bobLogin.status}`);
+
   const idor = await call(bob, 'GET', `/dogs/${profile?.id}`);
   check('IDOR: other user cannot read the dog (404, not 403)', idor.status === 404, `status ${idor.status}`);
   const idorSearch = await call(bob, 'GET', `/matches/searches/${result?.searchId}`);

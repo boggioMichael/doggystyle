@@ -45,17 +45,8 @@ export const securityHeadersPlugin: FastifyPluginAsync = async (app: FastifyInst
 
 /** Uniform JSON error envelope with a traceable request id. */
 export const errorHandlerPlugin: FastifyPluginAsync = async (app: FastifyInstance) => {
-  app.setNotFoundHandler((req, reply) => {
-    if (req.url.startsWith('/api/')) {
-      reply.status(404).send({
-        error: { code: 'not_found', message: 'No such endpoint.', requestId: req.requestId },
-      });
-      return;
-    }
-    // SPA fallback is installed separately when SERVE_WEB is on.
-    reply.status(404).send({ error: { code: 'not_found', message: 'Not found.', requestId: req.requestId } });
-  });
-
+  // Note: the 404 handler is installed once in app.ts, because Fastify allows
+  // only one per prefix and it needs to know whether the SPA is being served.
   app.setErrorHandler((err, req, reply) => {
     const requestId = req.requestId;
 

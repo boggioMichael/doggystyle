@@ -22,7 +22,9 @@ export interface RateRule {
 
 export const RATE_RULES = {
   login: { name: 'login', limit: 8, windowMs: 15 * 60_000, message: 'Too many sign-in attempts. Try again in a few minutes.' },
-  signup: { name: 'signup', limit: 5, windowMs: 60 * 60_000, message: 'Too many accounts created from here. Try again later.' },
+  // Keyed on IP, so a household behind one NAT shares this budget — 5/hour was
+  // tight enough to block a family signing up together.
+  signup: { name: 'signup', limit: 12, windowMs: 60 * 60_000, message: 'Too many accounts created from here. Try again later.' },
   magicLink: { name: 'magic_link', limit: 5, windowMs: 15 * 60_000, message: 'Too many sign-in links requested. Check your inbox.' },
   chat: { name: 'chat', limit: 60, windowMs: 60_000 },
   search: { name: 'search', limit: 30, windowMs: 60_000, message: 'Too many searches. Give it a moment.' },
