@@ -14,8 +14,10 @@ coverage/
 secrets/
 
 # local runtime data
+.tools/
 storage/
 data/
+artifacts/
 tmp/
 *.log
 logs/
