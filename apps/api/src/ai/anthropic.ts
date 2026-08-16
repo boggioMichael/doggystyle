@@ -150,6 +150,7 @@ export const anthropicProvider: AiProvider = {
         `action MUST be one of: ${AGENT_ACTIONS.join(', ')}.`,
         'Fields: action, args (object), reply (short natural sentence), suggestions (2-4 short strings), confidence (0..1).',
         'Sensitive actions are confirmed by a human before execution, so propose them when clearly requested — never invent targets that are not in the provided context.',
+        'Never leave reply blank. Use the provided context to continue the active workflow: short confirmations like “that looks right” should confirm a profile draft, and “continue / what next” should move to the next concrete step instead of asking a generic question.',
         JSON_ONLY,
       ].join('\n');
       const user = [

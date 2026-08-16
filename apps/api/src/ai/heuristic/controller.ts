@@ -30,6 +30,55 @@ export function decideActionHeuristic(utterance: string, context: AgentContext):
     return greetingDecision(context);
   }
 
+  /* ── 1b. Profile approval in plain language ─────────────────────────────── */
+  if (
+    context.hasDog &&
+    /^(?:(?:that|this|it)(?:\s+looks?|\s+'s|\s+is)?\s+(?:right|correct|good|great|perfect)|looks?\s+(?:right|good|great|perfect)|perfect|exactly)$/i.test(raw)
+  ) {
+    return decision(
+      'confirm_attribute',
+      {
+        keys: [
+          'name',
+          'breed',
+          'breed_secondary',
+          'age_years',
+          'sex',
+          'size',
+          'activity_level',
+          'sociability',
+          'play_styles',
+          'temperament',
+          'interests',
+          'bio',
+        ],
+      },
+      'Perfect — I’ll treat the current profile draft as confirmed. You can still correct anything later just by telling me.',
+      ['Find matches nearby', 'Open full profile', 'He’s actually four, not three'],
+      0.9,
+    );
+  }
+
+  /* ── 1c. Natural “continue / what next” follow-ups ──────────────────────── */
+  if (
+    /^(?:continue|go on|go ahead|carry on|keep going|what next|next step|let'?s continue)(?:[!,. ]*)$/i.test(raw) ||
+    /\bcontinue with (?:my|the) dog(?: one)?\b/.test(text) ||
+    /\bwhat (?:can|should) we do next\b/.test(text)
+  ) {
+    if (!context.hasDog) {
+      return context.photoCount > 0 || context.hasConnectedSource
+        ? decision('import_media', {}, 'Great — I’ll turn those photos into a profile draft now.', ['That looks right'], 0.8)
+        : decision(
+            'connect_social_account',
+            {},
+            "Absolutely — first pick where your dog's photos live, and I’ll build the profile from there.",
+            ['Upload photos instead'],
+            0.8,
+          );
+    }
+    return searchDecision(context);
+  }
+
   /* ── 2. Safety: block / report ──────────────────────────────────────────── */
   if (/\bblock\b/.test(text)) {
     const peer = findKnownDogName(text, context);
@@ -326,6 +375,12 @@ function fallbackDecision(context: AgentContext): AgentDecision {
   }
   if (!context.lastSearchId) {
     const name = context.dogName ?? 'your dog';
+    if (context.photoCount > 0 || context.hasProfileDraft) {
+      return decision('answer_question', {},
+        `If ${name}'s profile looks right, say “That looks right” and I’ll start matching. Or correct anything in plain language and I’ll update it.`,
+        ['That looks right', 'He’s actually four, not three', 'Find matches nearby'],
+        0.45);
+    }
     return decision('answer_question', {},
       `Tell me what you'd like for ${name} — a walking buddy, a playdate, a running partner — and I'll find nearby dogs that fit. You can be picky: size, energy, distance, schedule.`,
       ['Find a friendly walking buddy', 'Find an energetic playmate', 'Update my preferences'],

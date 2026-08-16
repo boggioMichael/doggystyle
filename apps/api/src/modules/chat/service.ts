@@ -289,7 +289,7 @@ export async function runChatTurn(input: {
     return { conversationId: threadId, messages: [toDto(userRow!), assistant] };
   }
 
-  const ctx: ActionContext = { actor, threadId, state, requestId, utterance: text };
+  const ctx: ActionContext = { actor, threadId, state, agentContext: context, requestId, utterance: text };
   let result: ExecutionResult;
   try {
     result = await entry.def.execute(args, ctx);
@@ -357,6 +357,7 @@ export async function resolveConfirmation(input: {
 
   const thread = await assertThreadOwner(threadId, actor.userId);
   const state = (thread.state ?? {}) as ThreadState;
+  const context = await buildContext(actor, threadId, state);
 
   // Re-validate the stored args and re-authorise against the *current* session.
   const parsed = entry.def.schema.safeParse(row.args);
@@ -368,6 +369,7 @@ export async function resolveConfirmation(input: {
       actor,
       threadId,
       state,
+      agentContext: context,
       requestId,
       utterance: '',
     });

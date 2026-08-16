@@ -10,6 +10,7 @@ import {
 } from '@doggystyle/shared';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { z, type ZodTypeAny } from 'zod';
+import type { AgentContext } from '../../ai/types.js';
 import { getAiProvider } from '../../ai/index.js';
 import { db } from '../../db/client.js';
 import { candidateMatches, dogProfiles, mediaAssets, matchRequests, preferences } from '../../db/schema.js';
@@ -56,6 +57,7 @@ export interface ActionContext {
   actor: Actor;
   threadId: string;
   state: ThreadState;
+  agentContext: AgentContext;
   requestId: string | null;
   /** The raw user utterance for this turn — used by intent parsing. */
   utterance: string;
@@ -77,6 +79,20 @@ export interface ActionDefinition {
 }
 
 const empty = z.object({}).passthrough();
+const PROFILE_CONFIRM_KEYS = [
+  'name',
+  'breed',
+  'breed_secondary',
+  'age_years',
+  'sex',
+  'size',
+  'activity_level',
+  'sociability',
+  'play_styles',
+  'temperament',
+  'interests',
+  'bio',
+] as const;
 
 /* ── Small resolution helpers (all actor-scoped) ───────────────────────────── */
 
@@ -113,6 +129,63 @@ async function connectPromptAttachment(userId: string): Promise<ChatAttachment> 
 }
 
 const NEEDS_DOG_SUGGESTIONS = ['Connect a photo source', 'Upload photos instead'];
+const PROFILE_CONFIRM_SUGGESTIONS = ['That looks right', 'He’s actually four, not three', 'Find my dog a playmate nearby'];
+
+function fallbackAnswer(ctx: ActionContext): ExecutionResult {
+  const context = ctx.agentContext;
+
+  if (!context.hasDog) {
+    if (context.photoCount > 0 || context.hasConnectedSource) {
+      return {
+        reply:
+          'I already have photos to work with. Ask me to build the profile from them, or connect another source if you want more coverage.',
+        attachments: [],
+        suggestions: ['Build the profile from my photos', 'Connect another photo source'],
+      };
+    }
+    return {
+      reply:
+        "Tell me what you'd like for your dog, or connect a photo source and I'll build the profile automatically.",
+      attachments: [],
+      suggestions: NEEDS_DOG_SUGGESTIONS,
+    };
+  }
+
+  const dogName = context.dogName ?? 'your dog';
+  if (!context.lastSearchId) {
+    if (context.photoCount > 0 || context.hasProfileDraft) {
+      return {
+        reply:
+          `If ${dogName}'s profile looks right, say “That looks right” and I’ll start matching right away. ` +
+          'Or correct anything in plain language, like “He’s actually four.”',
+        attachments: [],
+        suggestions: PROFILE_CONFIRM_SUGGESTIONS,
+      };
+    }
+    return {
+      reply:
+        `I’m ready to help ${dogName}. I can find matches, tighten preferences, or update the profile — just say it naturally.`,
+      attachments: [],
+      suggestions: ['Find my dog a playmate nearby', 'Find a walking buddy', 'Open full profile'],
+    };
+  }
+
+  if (context.openConnections.length > 0) {
+    return {
+      reply:
+        'I can show another match, ask an owner for an introduction, send a message, or line up a meetup — whichever you want next.',
+      attachments: [],
+      suggestions: ['Show me another match', 'Propose a meetup', 'Send them a message'],
+    };
+  }
+
+  return {
+    reply:
+      'I can show more candidates, ask another owner for an introduction, or refine the search to get closer fits.',
+    attachments: [],
+    suggestions: ['Show me another match', 'Ask their owner for an introduction', 'Only dogs closer than 5 km'],
+  };
+}
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * The registry
@@ -122,12 +195,15 @@ export const actionRegistry: Record<AgentActionName, ActionDefinition> = {
   answer_question: {
     schema: z.object({ reply: z.string().max(1200).optional() }).passthrough(),
     category: ACTION_CATEGORIES.answer_question,
-    async execute(args) {
-      return {
-        reply: typeof args.reply === 'string' && args.reply ? args.reply : 'How can I help with your dog?',
-        attachments: [],
-        suggestions: [],
-      };
+    async execute(args, ctx) {
+      if (typeof args.reply === 'string' && args.reply.trim()) {
+        return {
+          reply: args.reply,
+          attachments: [],
+          suggestions: [],
+        };
+      }
+      return fallbackAnswer(ctx);
     },
   },
 
@@ -318,7 +394,7 @@ export const actionRegistry: Record<AgentActionName, ActionDefinition> = {
         return {
           reply: `Here’s what I worked out from your photos${profile.name ? ` — meet ${profile.name}` : ''}. Correct anything that’s wrong just by telling me.`,
           attachments: [{ kind: 'dog_profile', profile }],
-          suggestions: ['That looks right', 'He’s actually four, not three', 'Find my dog a playmate nearby'],
+          suggestions: PROFILE_CONFIRM_SUGGESTIONS,
           stateDelta: { activeDogId: profile.id },
         };
       }
