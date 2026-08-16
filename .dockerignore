@@ -1,0 +1,12 @@
+.git
+.github
+.tools
+node_modules
+apps/**/node_modules
+storage
+artifacts
+docs
+.env
+.env.*
+!.env.example
+!.env.production.example

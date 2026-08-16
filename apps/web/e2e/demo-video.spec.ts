@@ -1,7 +1,7 @@
 import { copyFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
-import { E2E_PASSWORD, uniqueEmail } from './helpers';
+import { E2E_PASSWORD, uniqueEmail } from '../e2e-helpers';
 
 /**
  * The narrated product walkthrough, recorded as a video.

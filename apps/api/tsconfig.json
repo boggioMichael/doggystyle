@@ -3,14 +3,9 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
-    "composite": true,
     "types": ["node"],
-    "lib": ["ES2023"],
-    "paths": {
-      "@doggystyle/shared": ["../../packages/shared/src/index.ts"]
-    }
+    "lib": ["ES2023"]
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["dist", "node_modules", "tests"],
-  "references": [{ "path": "../../packages/shared" }]
+  "exclude": ["dist", "node_modules", "tests"]
 }

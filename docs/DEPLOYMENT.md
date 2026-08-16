@@ -85,6 +85,13 @@ fly ssh console --app doggystyle-beta -C \
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Only if Google Photos is enabled | ❌ |
 | `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET` | Only if Instagram import is enabled | ❌ |
 
+### Current public Beta overrides
+
+For the live Fly deployment, the following non-default secrets are set:
+
+- `DEMO_MODE=true` so the labeled demo photo source and seeded walkthrough remain available.
+- `SEED_ON_START=false` after the initial seed has been completed, so restarts stay lighter.
+
 ---
 
 ## Database migrations
